@@ -24,13 +24,21 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses
+        shell: bash
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -n 1)"
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: Android SDK sdkmanager not found"
+            exit 1
+          fi
+
+          yes | "$SDKMANAGER" --licenses || true
 
       - name: Build Debug APK
+        shell: bash
         run: |
           if [ -f gradlew ]; then
             chmod +x gradlew
@@ -38,7 +46,7 @@ jobs:
           elif [ -f build.gradle ] || [ -f build.gradle.kts ]; then
             gradle assembleDebug
           else
-            echo "ERROR: Gradle build files not found."
+            echo "ERROR: Gradle build files not found"
             exit 1
           fi
 
